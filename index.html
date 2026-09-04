@@ -114,8 +114,18 @@
     opacity:0; pointer-events:none;
     transform:translateY(8px);
     transition:opacity .45s ease, transform .45s ease;
+    /* 仍然保留可滚动（内容超出时不会被裁掉看不到），
+       但把滚动条本身的视觉样式隐藏掉——三行分别对应
+       Firefox / 旧版 IE-Edge / Chrome-Safari-移动端浏览器 */
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .screen::-webkit-scrollbar{
+    display:none;
+    width:0;
+    height:0;
   }
   .screen.active{
     position:relative;
@@ -210,6 +220,19 @@
   .zodiac-header{ padding:4px 20px 0 20px; }
   .zodiac-header h2{ margin:0; font-size:22px; color:var(--gold-1); font-weight:400; }
   .zodiac-header p{ margin:6px 0 0 0; font-size:12.5px; color:var(--text-faint); }
+  /* 显眼的游戏规则说明，放在选生肖页面最上方 */
+  .zodiac-rule-banner{
+    margin:10px 20px 0 20px;
+    padding:9px 14px;
+    border-radius:14px;
+    background:rgba(248,223,160,0.1);
+    border:1px solid rgba(248,223,160,0.3);
+    color:var(--gold-1);
+    font-size:12.5px;
+    font-weight:700;
+    text-align:center;
+    line-height:1.5;
+  }
 
   .zodiac-grid{
     flex:1;
@@ -344,12 +367,19 @@
     color:var(--text-light); font-size:15px; margin-bottom:14px;
   }
   .answer-input:focus{ outline:none; border-color:var(--gold-2); }
-  .answer-btns{ display:flex; gap:12px; }
+  .answer-btns{ display:flex; gap:10px; }
   .answer-btns button{
-    flex:1; padding:14px 0; border-radius:999px; font-size:15px; font-weight:700;
+    flex:1; padding:14px 0; border-radius:999px; font-size:14px; font-weight:700;
   }
   .btn-idk{ background:rgba(255,127,127,0.15); color:#ff9c9c; border:1px solid rgba(255,127,127,0.35) !important; }
   .btn-confirm{ background:linear-gradient(135deg,#5be6a8,#2fae7c); color:#0d2b1e; }
+  /* 求助按钮：紫色调，和门铃/答对绿区分开，视觉上标记为"辅助类"操作 */
+  .btn-help{
+    background:rgba(180,122,255,0.16);
+    color:#d3b8ff;
+    border:1px solid rgba(180,122,255,0.45) !important;
+  }
+  .btn-help.hidden{ display:none !important; }
 
   /* ---------- FEEDBACK FLASH ---------- */
   #feedback-flash{
@@ -422,6 +452,146 @@
   .btn-collect{ background:linear-gradient(135deg,var(--gold-1),var(--gold-2)); color:#3b2604; }
   .btn-viewscore{ background:rgba(255,255,255,0.1); color:var(--text-light); border:1px solid rgba(255,255,255,0.15) !important; }
 
+  /* ============================================================
+     🆘 求助功能（原音重现 / 关键字提醒 / 相关信息提醒）
+     ============================================================ */
+  .help-overlay{
+    position:fixed; inset:0; z-index:185;
+    background:rgba(6,3,12,0.82);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .3s ease;
+  }
+  .help-overlay.show{ opacity:1; pointer-events:auto; }
+  .help-box{
+    width:100%; max-width:420px;
+    background:var(--bg-card);
+    border-radius:var(--radius-lg);
+    padding:22px 20px 24px 20px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.6);
+    transform:translateY(16px) scale(0.97);
+    transition:transform .3s ease;
+    max-height:86vh;
+    overflow-y:auto;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+  }
+  .help-box::-webkit-scrollbar{ display:none; }
+  .help-overlay.show .help-box{ transform:translateY(0) scale(1); }
+  .help-step.hidden{ display:none !important; }
+  .help-title{
+    font-size:16px; font-weight:700; color:var(--gold-1);
+    text-align:center; margin-bottom:16px;
+  }
+
+  /* 三选一入口卡片：原音重现 / 关键字提醒 / 相关信息提醒，等大小横排三个 */
+  .help-choice-grid{
+    display:grid; grid-template-columns:repeat(3, 1fr);
+    gap:10px;
+  }
+  .help-choice{
+    aspect-ratio:1/0.95;
+    border-radius:var(--radius-md);
+    background:linear-gradient(150deg,#3d2560,#26173e);
+    border:1px solid rgba(255,255,255,0.08);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:8px;
+    font-size:12.5px; font-weight:700; line-height:1.5;
+    text-align:center;
+    padding:8px;
+  }
+  .help-choice .choice-emoji{ font-size:26px; }
+  .help-choice:active{ transform:scale(0.96); }
+
+  /* 显眼的规则说明（"只能翻开查看歌名中的一个字" / "可翻开两个查看"） */
+  .help-hint-note{
+    text-align:center;
+    font-size:13px; font-weight:700;
+    color:var(--gold-1);
+    background:rgba(248,223,160,0.1);
+    border:1px solid rgba(248,223,160,0.3);
+    border-radius:999px;
+    padding:8px 14px;
+    margin-bottom:16px;
+  }
+
+  /* 原音重现：播放器样式模块 */
+  .help-player-wrap{
+    background:rgba(255,255,255,0.05);
+    border-radius:var(--radius-md);
+    padding:20px 16px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .help-player-title{
+    font-size:14px; color:var(--text-dim); margin-bottom:12px;
+  }
+  .help-player-wrap audio{ width:100%; }
+
+  /* 翻牌卡片通用样式（关键字 / 相关信息共用） */
+  .help-card-grid{
+    display:flex; flex-wrap:wrap;
+    justify-content:center;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .help-card-grid-info{
+    display:grid; grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .hint-card{
+    width:52px; height:64px;
+    perspective:600px;
+    cursor:pointer;
+  }
+  .hint-card-wide{
+    width:auto; height:76px;
+  }
+  .hint-card.disabled{ pointer-events:none; opacity:0.4; }
+  .hint-card-inner{
+    position:relative;
+    width:100%; height:100%;
+    transition:transform .5s ease;
+    transform-style:preserve-3d;
+  }
+  .hint-card.flipped .hint-card-inner{ transform:rotateY(180deg); }
+  .hint-card-face{
+    position:absolute; inset:0;
+    backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
+    border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    text-align:center;
+    padding:6px;
+    font-size:13px;
+    line-height:1.3;
+    word-break:break-word;
+  }
+  .hint-card-front{
+    background:linear-gradient(160deg, var(--bg-card-2), var(--bg-card));
+    border:1px solid rgba(248,223,160,0.3);
+    color:var(--text-dim);
+    font-weight:700;
+  }
+  .hint-card-back{
+    background:linear-gradient(135deg,var(--gold-1),var(--gold-2));
+    color:#3b2604;
+    font-weight:700;
+    transform:rotateY(180deg);
+  }
+
+  .help-exit-btn{
+    display:block;
+    width:100%;
+    padding:14px 0;
+    border-radius:999px;
+    font-size:15px; font-weight:700;
+    background:rgba(255,255,255,0.1);
+    color:var(--text-light);
+    border:1px solid rgba(255,255,255,0.15) !important;
+  }
+  .help-exit-btn.hidden{ display:none !important; }
+
   /* ---------- STAR FLY ---------- */
   .fly-star{
     position:fixed; z-index:220; font-size:20px; pointer-events:none;
@@ -472,7 +642,7 @@
     .mode-card:not(.locked):hover{ transform:translateY(-3px); box-shadow:0 12px 26px rgba(0,0,0,0.45); }
     .zodiac-cell:not(.solved):hover{ transform:translateY(-3px); border-color:rgba(248,223,160,0.35); }
     .doorbell-btn:hover{ filter:brightness(1.06); }
-    .btn-confirm:hover, .btn-idk:hover, .btn-home:hover, .btn-collect:hover, .btn-viewscore:hover{ filter:brightness(1.08); }
+    .btn-confirm:hover, .btn-idk:hover, .btn-home:hover, .btn-collect:hover, .btn-viewscore:hover, .btn-help:hover, .help-choice:hover{ filter:brightness(1.08); }
     .back-btn:hover{ background:rgba(255,255,255,0.12); }
   }
 </style>
@@ -551,6 +721,7 @@
       <h2 class="display-font" id="zodiac-mode-title">普通模式</h2>
       <p>选择一个生肖，敲开它身后的门</p>
     </div>
+    <div class="zodiac-rule-banner">📌 门号越大歌曲越难</div>
     <div class="zodiac-grid" id="zodiac-grid"></div>
   </div>
 
@@ -585,6 +756,7 @@
       <input class="answer-input" id="answer-input" placeholder="输入歌名…" autocomplete="off">
       <div class="answer-btns">
         <button class="btn-idk" id="btn-idk">不知道</button>
+        <button class="btn-help" id="btn-help">求助</button>
         <button class="btn-confirm" id="btn-confirm">确认答案</button>
       </div>
     </div>
@@ -629,6 +801,49 @@
   </div>
 </div>
 
+<!-- ============ 求助弹窗（原音重现 / 关键字提醒 / 相关信息提醒） ============ -->
+<div class="help-overlay" id="help-overlay">
+  <div class="help-box">
+
+    <!-- 第一步：三选一 -->
+    <div class="help-step" id="help-step-choose">
+      <div class="help-title">选择一种求助方式（本局仅可使用一次）</div>
+      <div class="help-choice-grid">
+        <button class="help-choice" type="button" data-help="audio">
+          <span class="choice-emoji">🎧</span>原音重现
+        </button>
+        <button class="help-choice" type="button" data-help="keyword">
+          <span class="choice-emoji">🔤</span>关键字提醒
+        </button>
+        <button class="help-choice" type="button" data-help="info">
+          <span class="choice-emoji">📋</span>相关信息提醒
+        </button>
+      </div>
+    </div>
+
+    <!-- 第二步 A：原音重现 -->
+    <div class="help-step hidden" id="help-step-audio">
+      <div class="help-player-wrap" id="help-player-wrap"></div>
+      <button class="help-exit-btn" id="help-exit-audio">退出求助</button>
+    </div>
+
+    <!-- 第二步 B：关键字提醒（翻牌，只能翻 1 张） -->
+    <div class="help-step hidden" id="help-step-keyword">
+      <div class="help-hint-note">只能翻开查看歌名中的一个字</div>
+      <div class="help-card-grid" id="help-keyword-grid"></div>
+      <button class="help-exit-btn hidden" id="help-exit-keyword">退出求助</button>
+    </div>
+
+    <!-- 第二步 C：相关信息提醒（翻牌，最多翻 2 张） -->
+    <div class="help-step hidden" id="help-step-info">
+      <div class="help-hint-note">可翻开两个查看</div>
+      <div class="help-card-grid help-card-grid-info" id="help-info-grid"></div>
+      <button class="help-exit-btn hidden" id="help-exit-info">退出求助</button>
+    </div>
+
+  </div>
+</div>
+
 <script>
 (function(){
 
@@ -637,6 +852,14 @@
      allowedDoors：这首歌允许出现在哪些门号背后。算法严格遵守
      allowedDoors，且同一局游戏中每首歌最多只会被选为一次"答案"。
      excludeWith：本场游戏中不能与这些歌曲同时出现的歌曲 id。
+
+     🆘 求助功能用到两个【可选】字段，不加也不会报错（代码里有兜底）：
+       - genre：歌曲主题风格，用于"相关信息提醒"里的第 4 张卡。
+                不填时卡片背面显示"待补充"。
+       - originalAudio：原唱音频文件路径，用于"原音重现"。
+                不填时会退回播放 audio 字段（门铃用的那段）。
+     等你准备好数据，直接在下面对应歌曲对象里加一行即可，例如：
+       genre: "民谣", originalAudio: "assets/original/song_11.mp3"
      ============================================================ */
 
   const SONG_DATABASE = {
@@ -654,7 +877,7 @@
       { id:"song_11", title:"消愁",     artist:"毛不易", album:"平凡的一天", year:"2017", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[11] },
       { id:"song_12", title:"给我一首歌的时间", artist:"周杰伦", album:"我很忙", year:"2007", audio:"assets/normal/song_12.mp3", video:"assets/normal/mv_12.mp4", allowedDoors:[1] },
       { id:"song_13", title:"雨爱",     artist:"杨丞琳", album:"雨爱", year:"2010", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[9] },
-      { id:"song_14", title:"突然好想你",     artist:"五月天", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] },
+      { id:"song_14", title:"突然好想你",     artist:"五月天", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] }
     ],
 
     kpop: [
@@ -673,7 +896,7 @@
     ],
 
     western: [
-      { id:"west_01", title:"Shake It Off",       artist:"Taylor Swift", album:"1989",                 year:"2014", audio:"assets/western/song_01.mp3", video:"assets/western/mv_01.mp4", allowedDoors:[1],  excludeWith:["west_07"] },
+      { id:"west_01", title:"stay",       artist:"The Kid LAROI&Justin Bieber", album:"STAY(Explicit)",                 year:"2021", audio:"STAY.mp3", video:"STAY.mp4", allowedDoors:[3],  excludeWith:["west_07"] },
       { id:"west_02", title:"Bad Guy",             artist:"Billie Eilish", album:"WHEN WE ALL FALL ASLEEP", year:"2019", audio:"assets/western/song_02.mp3", video:"assets/western/mv_02.mp4", allowedDoors:[2] },
       { id:"west_03", title:"Blinding Lights",     artist:"The Weeknd",   album:"After Hours",          year:"2020", audio:"assets/western/song_03.mp3", video:"assets/western/mv_03.mp4", allowedDoors:[3] },
       { id:"west_04", title:"Love Story",          artist:"Taylor Swift", album:"Fearless",             year:"2008", audio:"assets/western/song_04.mp3", video:"assets/western/mv_04.mp4", allowedDoors:[4], excludeWith:["west_08"] },
@@ -684,7 +907,8 @@
       { id:"west_09", title:"Flowers",             artist:"Miley Cyrus",  album:"Endless Summer Vacation", year:"2023", audio:"assets/western/song_09.mp3", video:"assets/western/mv_09.mp4", allowedDoors:[9] },
       { id:"west_10", title:"As It Was",           artist:"Harry Styles", album:"Harry's House",        year:"2022", audio:"assets/western/song_10.mp3", video:"assets/western/mv_10.mp4", allowedDoors:[10] },
       { id:"west_11", title:"Anti-Hero",           artist:"Taylor Swift", album:"Midnights",            year:"2022", audio:"assets/western/song_11.mp3", video:"assets/western/mv_11.mp4", allowedDoors:[11] },
-      { id:"west_12", title:"Espresso",            artist:"Sabrina Carpenter", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[12] }
+      { id:"west_12", title:"Espresso",            artist:"Sabrina Carpenter", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[12] },
+       { id:"west_13", title:"Esp",            artist:"Sabrina Carpenter", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[1] }
     ]
   };
 
@@ -713,7 +937,7 @@
 • 输入歌名时请使用中文或英文原名
 • 大小写需要完全一致（如 Dynamite ≠ dynamite）
 • 不需要输入歌手名，只输入歌名即可
-• 如果实在想不起来，可以点击"不知道"按钮
+• 如果实在想不起来，可以点击"不知道"按钮，或使用一次"求助"
 
 💡 提示：可以回忆一下歌曲的副歌部分！`;
 
@@ -757,6 +981,19 @@
     return getAllSongsFlat().find(s => s.id === id);
   }
 
+  // 🆘 把歌名拆成"翻牌单元"：中文按单字拆，连续的英文字母算一整个单词一张卡。
+  // 例如 "好好" -> ["好","好"]（2 张）；"Mojito" -> ["Mojito"]（1 张）；
+  // "给我一首歌的时间" -> 8 张单字卡。
+  function tokenizeTitleForCards(title){
+    const tokens = [];
+    const re = /[A-Za-z]+|[^\sA-Za-z]/g;
+    let m;
+    while((m = re.exec(title || ''))){
+      tokens.push(m[0]);
+    }
+    return tokens;
+  }
+
   const state = {
     mode:null,
     score:0,
@@ -773,7 +1010,8 @@
     progressRAF:null,
     holdStart:0,
     isHolding:false,
-    answering:false
+    answering:false,
+    helpUsedThisGame:false // 🆘 本局是否已经用掉唯一一次求助机会
   };
 
   const HOLD_MAX_MS = 20000;
@@ -903,7 +1141,9 @@
     state.doors = doors;
     state.animalDoorMap = buildAnimalDoorMap();
     state.solvedAnimals = new Set();
+    state.helpUsedThisGame = false; // 🆘 新的一局，求助机会重新可用
     syncScoreDisplays();
+    updateHelpButtonVisibility();
 
     $('zodiac-mode-title').textContent = MODE_TITLES[modeKey] || modeKey;
     renderZodiacGrid();
@@ -944,6 +1184,7 @@
 
   $('btn-back-zodiac').addEventListener('click', () => {
     cleanupAudio();
+    closeHelpOverlay();
     switchScreen('zodiac');
   });
 
@@ -959,6 +1200,8 @@
     $('progress-ring').style.setProperty('--p', 0);
     state.answering = false;
     state.holdStart = 0;
+    closeHelpOverlay(); // 防御性重置：万一上一扇门求助面板没关就切了门
+    updateHelpButtonVisibility();
 
     // 提前预加载这扇门后面的歌曲：进入门铃界面时就开始缓冲，
     // 减少长按门铃后到真正出声之间的延迟（移动端首次加载尤其明显）。
@@ -1118,6 +1361,7 @@
   function showAnswerPanel(){
     state.answering = true;
     $('answer-panel').classList.add('show');
+    updateHelpButtonVisibility();
     setTimeout(()=> $('answer-input').focus(), 200);
   }
 
@@ -1135,6 +1379,7 @@
     if(!state.answering) return;
     state.answering = false;
     $('answer-panel').classList.remove('show');
+    closeHelpOverlay();
 
     const door = state.doors[state.currentDoorNum];
     if(!door.answer){
@@ -1146,6 +1391,173 @@
 
     setTimeout(() => showFeedback(isCorrect, door), 150);
   }
+
+  /* ============================================================
+     🆘 求助功能
+     ------------------------------------------------------------
+     - btn-help：本局用过一次后会被隐藏（updateHelpButtonVisibility）
+     - 三选一里，玩家点了其中任意一个即视为"用掉"这次求助机会，
+       和后面翻牌/播放的具体交互结果无关（哪怕求助后依然答错也不退还）。
+     - 三种求助方式共用同一个 help-overlay 弹窗容器，只是显示不同的
+       .help-step 子面板。
+     ============================================================ */
+  const helpOverlay = $('help-overlay');
+  const helpBtn = $('btn-help');
+  const helpStepChoose = $('help-step-choose');
+  const helpStepAudio = $('help-step-audio');
+  const helpStepKeyword = $('help-step-keyword');
+  const helpStepInfo = $('help-step-info');
+  const helpPlayerWrap = $('help-player-wrap');
+  let helpAudioEl = null; // 原音重现用到的 <audio>，关闭求助时要一起销毁
+  let helpFlipsUsed = 0;
+  let helpMaxFlips = 0;
+
+  function updateHelpButtonVisibility(){
+    helpBtn.classList.toggle('hidden', state.helpUsedThisGame);
+  }
+
+  function openHelpOverlay(){
+    // 每次打开都重置回"三选一"这一步，几个具体求助面板先隐藏、清空
+    [helpStepAudio, helpStepKeyword, helpStepInfo].forEach(s => s.classList.add('hidden'));
+    helpStepChoose.classList.remove('hidden');
+    helpOverlay.classList.add('show');
+  }
+
+  function closeHelpOverlay(){
+    helpOverlay.classList.remove('show');
+    // 原音重现的音频播放要跟着一起停掉、销毁，避免残留播放
+    if(helpAudioEl){
+      try{ helpAudioEl.pause(); }catch(_){}
+      helpAudioEl = null;
+    }
+    helpPlayerWrap.innerHTML = '';
+  }
+
+  helpBtn.addEventListener('click', () => {
+    if(state.helpUsedThisGame) return; // 双重保险：本局已经用过就不响应
+    openHelpOverlay();
+  });
+
+  document.querySelectorAll('.help-choice').forEach(btn=>{
+    btn.addEventListener('click', () => {
+      // 选中三选一中的任意一个，本局唯一一次求助机会即视为用掉
+      state.helpUsedThisGame = true;
+      updateHelpButtonVisibility();
+
+      helpStepChoose.classList.add('hidden');
+      const type = btn.dataset.help;
+      if(type === 'audio') startAudioHelp();
+      else if(type === 'keyword') startKeywordHelp();
+      else if(type === 'info') startInfoHelp();
+    });
+  });
+
+  // -- 原音重现 --
+  function startAudioHelp(){
+    helpStepAudio.classList.remove('hidden');
+    const door = state.doors[state.currentDoorNum];
+    const song = door ? door.answer : null;
+
+    helpPlayerWrap.innerHTML = '';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'help-player-title';
+    titleEl.textContent = '🎵 正在播放原唱片段…';
+    helpPlayerWrap.appendChild(titleEl);
+
+    const audioEl = document.createElement('audio');
+    audioEl.controls = true;
+    audioEl.autoplay = true;
+    // originalAudio 没配置时，退回播放门铃用的 audio 字段，保证功能始终可用
+    audioEl.src = (song && (song.originalAudio || song.audio)) || '';
+    helpPlayerWrap.appendChild(audioEl);
+    helpAudioEl = audioEl;
+    audioEl.play().catch(()=>{});
+
+    $('help-exit-audio').classList.remove('hidden');
+  }
+
+  // -- 关键字提醒：翻牌，只能翻 1 张 --
+  function startKeywordHelp(){
+    helpStepKeyword.classList.remove('hidden');
+    const door = state.doors[state.currentDoorNum];
+    const song = door ? door.answer : null;
+    const tokens = tokenizeTitleForCards(song ? song.title : '');
+
+    helpMaxFlips = 1;
+    helpFlipsUsed = 0;
+    const grid = $('help-keyword-grid');
+    grid.innerHTML = '';
+    $('help-exit-keyword').classList.add('hidden');
+
+    tokens.forEach((tok) => {
+      const card = document.createElement('div');
+      card.className = 'hint-card';
+      card.innerHTML =
+        '<div class="hint-card-inner">' +
+          '<div class="hint-card-face hint-card-front">？</div>' +
+          '<div class="hint-card-face hint-card-back"></div>' +
+        '</div>';
+      card.querySelector('.hint-card-back').textContent = tok;
+
+      card.addEventListener('click', () => {
+        if(card.classList.contains('flipped') || helpFlipsUsed >= helpMaxFlips) return;
+        card.classList.add('flipped');
+        helpFlipsUsed++;
+        if(helpFlipsUsed >= helpMaxFlips){
+          grid.querySelectorAll('.hint-card:not(.flipped)').forEach(c => c.classList.add('disabled'));
+          $('help-exit-keyword').classList.remove('hidden');
+        }
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  // -- 相关信息提醒：翻牌，最多翻 2 张（歌手 / 专辑 / 年代 / 风格） --
+  function startInfoHelp(){
+    helpStepInfo.classList.remove('hidden');
+    const door = state.doors[state.currentDoorNum];
+    const song = (door && door.answer) || {};
+
+    helpMaxFlips = 2;
+    helpFlipsUsed = 0;
+    const grid = $('help-info-grid');
+    grid.innerHTML = '';
+    $('help-exit-info').classList.add('hidden');
+
+    const items = [
+      { front:'查看歌手',       back: song.artist || '暂无数据' },
+      { front:'查看专辑名称',   back: song.album  || '暂无数据' },
+      { front:'查看发行年代',   back: song.year   || '暂无数据' },
+      { front:'查看歌曲主题风格', back: song.genre || '待补充' }
+    ];
+
+    items.forEach((item) => {
+      const card = document.createElement('div');
+      card.className = 'hint-card hint-card-wide';
+      card.innerHTML =
+        '<div class="hint-card-inner">' +
+          '<div class="hint-card-face hint-card-front"></div>' +
+          '<div class="hint-card-face hint-card-back"></div>' +
+        '</div>';
+      card.querySelector('.hint-card-front').textContent = item.front;
+      card.querySelector('.hint-card-back').textContent = item.back;
+
+      card.addEventListener('click', () => {
+        if(card.classList.contains('flipped') || helpFlipsUsed >= helpMaxFlips) return;
+        card.classList.add('flipped');
+        helpFlipsUsed++;
+        if(helpFlipsUsed >= helpMaxFlips){
+          grid.querySelectorAll('.hint-card:not(.flipped)').forEach(c => c.classList.add('disabled'));
+          $('help-exit-info').classList.remove('hidden');
+        }
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  ['help-exit-audio','help-exit-keyword','help-exit-info'].forEach(id=>{
+    $(id).addEventListener('click', closeHelpOverlay);
+  });
 
   function showFeedback(isCorrect, door){
     const flash = $('feedback-flash');
@@ -1301,6 +1713,7 @@
 
   $('btn-return-home').addEventListener('click', () => {
     cleanupAudio();
+    closeHelpOverlay();
     state.mode = null;
     state.score = 0;
     state.doors = {};
