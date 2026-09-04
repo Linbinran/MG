@@ -721,7 +721,7 @@
       <h2 class="display-font" id="zodiac-mode-title">普通模式</h2>
       <p>选择一个生肖，敲开它身后的门</p>
     </div>
-    <div class="zodiac-rule-banner">📌 门号越大歌曲越难</div>
+    <div class="zodiac-rule-banner"> 门号越大歌曲越难</div>
     <div class="zodiac-grid" id="zodiac-grid"></div>
   </div>
 
@@ -836,7 +836,7 @@
 
     <!-- 第二步 C：相关信息提醒（翻牌，最多翻 2 张） -->
     <div class="help-step hidden" id="help-step-info">
-      <div class="help-hint-note">可翻开两个查看</div>
+      <div class="help-hint-note">可翻开三个查看</div>
       <div class="help-card-grid help-card-grid-info" id="help-info-grid"></div>
       <button class="help-exit-btn hidden" id="help-exit-info">退出求助</button>
     </div>
@@ -853,6 +853,10 @@
      allowedDoors，且同一局游戏中每首歌最多只会被选为一次"答案"。
      excludeWith：本场游戏中不能与这些歌曲同时出现的歌曲 id。
 
+     🆕 title 支持配置多个可接受答案：用 "/" 隔开，例如 "Mojito/莫希托"，
+        玩家输入任意一个都算对。展示给玩家看的"正式歌名"（结果弹窗、
+        求助的关键字翻牌）固定取 "/" 前面的第一个，不会把 "/" 显示出来。
+
      🆘 求助功能用到两个【可选】字段，不加也不会报错（代码里有兜底）：
        - genre：歌曲主题风格，用于"相关信息提醒"里的第 4 张卡。
                 不填时卡片背面显示"待补充"。
@@ -864,20 +868,21 @@
 
   const SONG_DATABASE = {
     normal: [
-      {id:"song_01", title:"好好",   artist:"五月天", album:"自传",     year:"2016", audio:"haohao.mp3", video:"haohao.mp4", allowedDoors:[8,9,10]},
-      { id:"song_02", title:"冻结",     artist:"林俊杰", album:"乐行者",     year:"2003", audio:"dongjie.mp3", video:"dongjie.mp4", allowedDoors:[7] },
-      { id:"song_03", title:"阴天快乐",     artist:"陈奕迅", album:"rice&shine", year:"2014", audio:"yintiankuaile.mp3", video:"yintiankuaile.mp4", allowedDoors:[7] },
-      { id:"song_04", title:"魔鬼中的天使",     artist:"田馥甄", album:"My Love",     year:"2011", audio:"moguizhongdetianshi.mp3", video:"moguizhongdetianshi.mp4", allowedDoors:[5,6,8], },
-      { id:"song_05", title:"红豆",     artist:"王菲",   album:"唱游",       year:"1998", audio:"assets/normal/song_05.mp3", video:"assets/normal/mv_05.mp4", allowedDoors:[6] },
-      { id:"song_06", title:"匆匆那年", artist:"王菲",   album:"匆匆那年",   year:"2014", audio:"assets/normal/song_06.mp3", video:"assets/normal/mv_06.mp4", allowedDoors:[5]},
+       {id:"song_01", title:"好好",   artist:"五月天", album:"自传",     year:"2016",genre:"青春校园&告别", audio:"haohao.mp3", video:"haohao.mp4", originalAudio:"好好原音重现.mp3", allowedDoors:[8,9,10]},
+      { id:"song_02", title:"冻结",     artist:"林俊杰", album:"乐行者",     year:"2003",genre:"爱情&回忆", audio:"dongjie.mp3", video:"dongjie.mp4", originalAudio:"冻结原音重现.mp3", allowedDoors:[7] },
+      { id:"song_03", title:"阴天快乐",     artist:"陈奕迅", album:"rice&shine", year:"2014",genre:"思念&与遗憾和解", audio:"yintiankuaile.mp3", video:"yintiankuaile.mp4", originalAudio:"阴天快乐原音重现.mp3", allowedDoors:[7] },
+      { id:"song_04", title:"魔鬼中的天使",     artist:"田馥甄", album:"My Love",     year:"2011",genre:"爱恨共生&自尊", audio:"moguizhongdetianshi.mp3", video:"moguizhongdetianshi.mp4",originalAudio:"魔鬼中的天使原音重现.mp3", allowedDoors:[5,6,8], },
+      { id:"song_05", title:"憨人/咸鱼",     artist:"五月天",   album:"爱情万岁",       year:"2000",genre:"平凡人的倔强追梦", audio:"hanren.mp3", video:"hanren.mp4",originalAudio:"憨人原音重现.mp3", allowedDoors:[11] },
+      { id:"song_06", title:"如果有一天", artist:"梁静茹",   album:"勇气",   year:"2000",genre:"分手后的假想与遗憾", audio:"ruguoyouyitian.mp3", video:"ruguoyouyitian.mp4",originalAudio:"如果有一天原音重现.mp3", allowedDoors:[7,9]},
       { id:"song_07", title:"Mojito",  artist:"周杰伦", album:"最伟大的作品", year:"2020", audio:"assets/normal/song_07.mp3", video:"assets/normal/mv_07.mp4", allowedDoors:[4],  },
       { id:"song_08", title:"告白气球", artist:"周杰伦", album:"周杰伦的床边故事", year:"2016", audio:"assets/normal/song_08.mp3", video:"assets/normal/mv_08.mp4", allowedDoors:[3], },
       { id:"song_09", title:"演员",     artist:"薛之谦", album:"绅士",       year:"2015", audio:"assets/normal/song_09.mp3", video:"assets/normal/mv_09.mp4", allowedDoors:[2]},
       { id:"song_10", title:"体面",     artist:"于文文", album:"体面",       year:"2017", audio:"assets/normal/song_10.mp3", video:"assets/normal/mv_10.mp4", allowedDoors:[12] },
-      { id:"song_11", title:"消愁",     artist:"毛不易", album:"平凡的一天", year:"2017", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[11] },
+      { id:"song_11", title:"消愁",     artist:"毛不易", album:"平凡的一天", year:"2017", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[8] },
       { id:"song_12", title:"给我一首歌的时间", artist:"周杰伦", album:"我很忙", year:"2007", audio:"assets/normal/song_12.mp3", video:"assets/normal/mv_12.mp4", allowedDoors:[1] },
       { id:"song_13", title:"雨爱",     artist:"杨丞琳", album:"雨爱", year:"2010", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[9] },
-      { id:"song_14", title:"突然好想你",     artist:"五月天", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] }
+      { id:"song_14", title:"突然好想你",     artist:"五月天", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] },
+      { id:"song_15", title:"晴天",     artist:"周杰伦", album:"叶惠美", year:"2003", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[6] },
     ],
 
     kpop: [
@@ -917,15 +922,15 @@
   const DAILY_CHALLENGE = {
     enabled: true,
     doorMapping: {
-      1:  "song_06",
-      2:  "song_05",
-      3:  "kpop_01",
+      1:  "song_11",
+      2:  "song_10",
+      3:  "west_01",
       4:  "kpop_04",
       5:  "song_04",
       6:  "song_03",
       7:  "song_02",
       8:  "song_01",
-      9:  "kpop_05",
+      9:  "song_06",
       10: "west_02",
       11: "west_11",
       12: "kpop_12"
@@ -935,7 +940,8 @@
   const RULE_HINT_TEXT =
 `📌 猜歌规则说明：
 • 输入歌名时请使用中文或英文原名
-• 大小写需要完全一致（如 Dynamite ≠ dynamite）
+•歌名中带有空格，标点时可打可不打，例如："爱，很简单" 或 "爱很简单"，空格只打一个
+• 英文歌名请使用小写字母（如 Dynamite ≠ dynamite）
 • 不需要输入歌手名，只输入歌名即可
 • 如果实在想不起来，可以点击"不知道"按钮，或使用一次"求助"
 
@@ -969,6 +975,16 @@
   }
   function normalizeAnswer(s){
     return (s||'').trim();
+  }
+  // 🆕 支持一首歌配置多个可接受答案：在 title 里用 "/" 隔开，例如
+  // "Mojito/莫希托"，玩家输入任意一个都算对。
+  function getAnswerVariants(title){
+    return (title || '').split('/').map(s => normalizeAnswer(s)).filter(Boolean);
+  }
+  // 展示给玩家看的"正式歌名"——固定取 "/" 前面的第一个，不会把 "/" 也显示出来
+  function getDisplayTitle(title){
+    const variants = getAnswerVariants(title);
+    return variants.length ? variants[0] : (title || '');
   }
   function getAllSongsFlat(){
     return [
@@ -1387,7 +1403,8 @@
       return;
     }
     const correctTitle = door.answer.title;
-    const isCorrect = rawValue !== null && normalizeAnswer(rawValue) === normalizeAnswer(correctTitle);
+    const acceptedAnswers = getAnswerVariants(correctTitle);
+    const isCorrect = rawValue !== null && acceptedAnswers.includes(normalizeAnswer(rawValue));
 
     setTimeout(() => showFeedback(isCorrect, door), 150);
   }
@@ -1481,7 +1498,7 @@
     helpStepKeyword.classList.remove('hidden');
     const door = state.doors[state.currentDoorNum];
     const song = door ? door.answer : null;
-    const tokens = tokenizeTitleForCards(song ? song.title : '');
+    const tokens = tokenizeTitleForCards(song ? getDisplayTitle(song.title) : '');
 
     helpMaxFlips = 1;
     helpFlipsUsed = 0;
@@ -1518,7 +1535,7 @@
     const door = state.doors[state.currentDoorNum];
     const song = (door && door.answer) || {};
 
-    helpMaxFlips = 2;
+    helpMaxFlips = 3; // 相关信息提醒：最多可翻开三张卡
     helpFlipsUsed = 0;
     const grid = $('help-info-grid');
     grid.innerHTML = '';
@@ -1587,7 +1604,7 @@
 
     if(song){
       resultInfoRows.innerHTML = `
-        🎵 歌名：${song.title}<br>
+        🎵 歌名：${getDisplayTitle(song.title)}<br>
         🎤 歌手：${song.artist}<br>
         💿 专辑：${song.album}<br>
         📅 发行年份：${song.year}
