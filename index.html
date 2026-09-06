@@ -132,24 +132,46 @@
     opacity:1; pointer-events:auto; transform:translateY(0);
   }
 
-  /* portal transition overlay */
+  /* portal transition overlay：唱片在音乐盒上旋转的加载动画 */
   #portal-overlay{
     position:fixed; inset:0; z-index:200;
     display:flex; align-items:center; justify-content:center;
     background:radial-gradient(circle, #6b3fa0 0%, #1a0e2b 70%);
     opacity:0; pointer-events:none;
   }
-  #portal-overlay.show{ animation:portalPulse .7s ease forwards; }
+  #portal-overlay.show{ animation:portalPulse 1.05s ease forwards; }
   @keyframes portalPulse{
     0%{opacity:0; clip-path:circle(0% at 50% 20%);}
-    35%{opacity:1; clip-path:circle(75% at 50% 20%);}
-    65%{opacity:1; clip-path:circle(75% at 50% 20%);}
+    30%{opacity:1; clip-path:circle(75% at 50% 20%);}
+    70%{opacity:1; clip-path:circle(75% at 50% 20%);}
     100%{opacity:0; clip-path:circle(140% at 50% 20%);}
   }
-  #portal-overlay .portal-emoji{
-    font-size:54px; animation:spin 1.4s linear infinite;
+  .record-loader{
+    position:relative;
+    width:100px; height:126px;
+    display:flex; align-items:flex-end; justify-content:center;
   }
-  @keyframes spin{ from{transform:rotate(0deg) scale(1);} to{transform:rotate(360deg) scale(1);} }
+  .record-box{
+    position:absolute; bottom:0; left:50%; transform:translateX(-50%);
+    width:76px; height:36px;
+    border-radius:10px 10px 6px 6px;
+    background:linear-gradient(160deg, var(--gold-1), var(--gold-2) 60%, var(--gold-3));
+    box-shadow:0 8px 20px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.45);
+  }
+  .record-box::before{
+    content:"";
+    position:absolute; left:50%; top:-4px; transform:translateX(-50%);
+    width:54px; height:7px; border-radius:4px;
+    background:rgba(21,10,36,0.55);
+  }
+  .record-disc{
+    width:90px; height:90px;
+    position:relative; z-index:2;
+    margin-bottom:-8px; /* 让唱片略微叠在音乐盒转盘上 */
+    filter:drop-shadow(0 10px 16px rgba(0,0,0,0.5));
+    animation:recordSpin 0.85s linear infinite;
+  }
+  @keyframes recordSpin{ from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
 
   /* ---------- HOME ---------- */
   .home-banner{
@@ -180,6 +202,17 @@
   }
   .home-banner p{
     margin:8px 0 0 0; font-size:13.5px; color:var(--text-dim); letter-spacing:1px;
+  }
+  .home-banner .daily-last-score{
+    margin-top:12px;
+    font-size:12.5px; font-weight:700;
+    color:var(--gold-1);
+    background:rgba(248,223,160,0.14);
+    border:1px solid rgba(248,223,160,0.3);
+    display:inline-block;
+    padding:5px 12px;
+    border-radius:999px;
+    position:relative; z-index:1;
   }
   .home-banner .banner-cta{
     display:inline-block; margin-top:14px; font-size:12px; color:var(--gold-1);
@@ -254,6 +287,12 @@
   }
   .zodiac-cell .emoji{font-size:30px;}
   .zodiac-cell .name{font-size:11.5px; color:var(--text-dim);}
+  .zodiac-cell .door-number-badge{
+    font-family:'ZCOOL KuaiLe', sans-serif;
+    font-size:26px;
+    font-weight:700;
+    letter-spacing:1px;
+  }
   .zodiac-cell.solved{
     background:linear-gradient(160deg, #2a3d33, #1e2c25);
     opacity:0.55;
@@ -361,12 +400,39 @@
     font-size:12px; color:var(--text-faint); line-height:1.7; white-space:pre-line;
   }
   .hint-text.show{ max-height:220px; margin-bottom:10px; }
+  .answer-input-wrap{ position:relative; margin-bottom:14px; }
   .answer-input{
     width:100%; padding:14px 16px; border-radius:var(--radius-sm);
     background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
-    color:var(--text-light); font-size:15px; margin-bottom:14px;
+    color:var(--text-light); font-size:15px; margin-bottom:0;
+    position:relative;
   }
   .answer-input:focus{ outline:none; border-color:var(--gold-2); }
+  .answer-input.error-border{ border-color:#e05353 !important; }
+  .answer-input.shake{ animation:inputShake 0.6s ease; }
+  @keyframes inputShake{
+    0%,100%{ transform:translateX(0); }
+    15%{ transform:translateX(-8px); }
+    30%{ transform:translateX(7px); }
+    45%{ transform:translateX(-6px); }
+    60%{ transform:translateX(4px); }
+    75%{ transform:translateX(-2px); }
+    90%{ transform:translateX(1px); }
+  }
+  .answer-input-msg{
+    position:absolute; inset:0;
+    display:flex; align-items:center;
+    padding:0 16px;
+    pointer-events:none;
+    font-size:13.5px;
+    font-weight:700;
+    opacity:0;
+    border-radius:var(--radius-sm);
+    transition:opacity .25s ease;
+  }
+  .answer-input-msg.show{ opacity:1; }
+  .answer-input-msg.warn-empty{ color:rgba(200,60,60,0.9); background:rgba(139,20,20,0.08); }
+  .answer-input-msg.warn-close{ color:drgba(252, 248, 3, 0.881); background:rgba(0,0,0,0.04); }
   .answer-btns{ display:flex; gap:10px; }
   .answer-btns button{
     flex:1; padding:14px 0; border-radius:999px; font-size:14px; font-weight:700;
@@ -503,7 +569,7 @@
   .help-choice .choice-emoji{ font-size:26px; }
   .help-choice:active{ transform:scale(0.96); }
 
-  /* 显眼的规则说明（"只能翻开查看歌名中的一个字" / "可翻开两个查看"） */
+  /* 显眼的规则说明（"只能翻开查看歌名中的一个字" / "可翻开三个查看"） */
   .help-hint-note{
     text-align:center;
     font-size:13px; font-weight:700;
@@ -677,14 +743,12 @@
     <div class="topbar">
       <div class="back-btn hidden">‹</div>
       <div style="flex:1"></div>
-      <div class="score-pill" id="score-pill-home">
-        <span class="star">⭐</span><span class="score-num" id="score-num-home">0</span>
-      </div>
     </div>
 
     <div class="home-banner" id="daily-challenge-banner" role="button" tabindex="0" aria-label="进入每日挑战">
       <h1 class="display-font">每日挑战</h1>
       <p>叩响命运之门 · 听一段旋律 · 猜出它的名字</p>
+      <div class="daily-last-score hidden" id="daily-last-score"></div>
       <span class="banner-cta">▶ 点击开始</span>
     </div>
 
@@ -753,7 +817,10 @@
         <button class="hint-toggle" id="hint-toggle">?</button>
       </div>
       <div class="hint-text" id="hint-text"></div>
-      <input class="answer-input" id="answer-input" placeholder="输入歌名…" autocomplete="off">
+      <div class="answer-input-wrap">
+        <input class="answer-input" id="answer-input" placeholder="输入歌名…" autocomplete="off">
+        <div class="answer-input-msg" id="answer-input-msg"></div>
+      </div>
       <div class="answer-btns">
         <button class="btn-idk" id="btn-idk">不知道</button>
         <button class="btn-help" id="btn-help">求助</button>
@@ -777,8 +844,27 @@
 
 </div>
 
-<!-- portal transition overlay -->
-<div id="portal-overlay"><div class="portal-emoji">🌀</div></div>
+<!-- portal transition overlay：唱片在音乐盒上旋转 -->
+<div id="portal-overlay">
+  <div class="record-loader" aria-hidden="true">
+    <svg class="record-disc" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="discLabelGrad" cx="35%" cy="35%" r="70%">
+          <stop offset="0" stop-color="#f8dfa0"/>
+          <stop offset="1" stop-color="#d9a441"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="50" r="46" fill="#141018"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <circle cx="50" cy="50" r="22" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <circle cx="50" cy="50" r="16" fill="url(#discLabelGrad)"/>
+      <circle cx="50" cy="50" r="3.2" fill="#150a24"/>
+    </svg>
+    <div class="record-box"></div>
+  </div>
+</div>
 
 <!-- feedback flash -->
 <div id="feedback-flash"><div class="flash-text" id="flash-text"></div></div>
@@ -791,9 +877,7 @@
       <div class="modal-info-row" id="result-info-rows"></div>
     </div>
     <div class="modal-divider"></div>
-    <div class="modal-video-wrap">
-      <video id="result-video" playsinline controls autoplay muted></video>
-    </div>
+    <div class="modal-video-wrap" id="modal-video-wrap"></div>
     <div class="modal-btn-wrap">
       <button class="btn-collect hidden" id="btn-collect">收集积分并继续游戏</button>
       <button class="btn-viewscore hidden" id="btn-viewscore">查看本局游戏积分</button>
@@ -834,7 +918,7 @@
       <button class="help-exit-btn hidden" id="help-exit-keyword">退出求助</button>
     </div>
 
-    <!-- 第二步 C：相关信息提醒（翻牌，最多翻 2 张） -->
+    <!-- 第二步 C：相关信息提醒（翻牌，最多翻 3 张） -->
     <div class="help-step hidden" id="help-step-info">
       <div class="help-hint-note">可翻开三个查看</div>
       <div class="help-card-grid help-card-grid-info" id="help-info-grid"></div>
@@ -864,6 +948,10 @@
                 不填时会退回播放 audio 字段（门铃用的那段）。
      等你准备好数据，直接在下面对应歌曲对象里加一行即可，例如：
        genre: "民谣", originalAudio: "assets/original/song_11.mp3"
+
+     🆕 同局歌手去重：随机组局（普通/K-pop/欧美模式）时，同一局内
+        不会出现两首及以上"artist 字段完全相同"的歌。每日挑战用固定
+        门号映射，不受这条限制影响。
      ============================================================ */
 
   const SONG_DATABASE = {
@@ -875,15 +963,17 @@
       { id:"song_05", title:"憨人/咸鱼",     artist:"五月天",   album:"爱情万岁",       year:"2000",genre:"平凡人的倔强追梦", audio:"hanren.mp3", video:"hanren.mp4",originalAudio:"憨人原音重现.mp3", allowedDoors:[11] },
       { id:"song_06", title:"如果有一天", artist:"梁静茹",   album:"勇气",   year:"2000",genre:"分手后的假想与遗憾", audio:"ruguoyouyitian.mp3", video:"ruguoyouyitian.mp4",originalAudio:"如果有一天原音重现.mp3", allowedDoors:[7,9]},
       { id:"song_07", title:"后会无期",  artist:"徐良&汪苏泷", album:"不良少年", year:"2011",genre:"错位相爱&青春离别", audio:"houhuiwuqi.mp3", video:"houhuiwuqi.mp4", originalAudio:"后会无期原音重现.mp3", allowedDoors:[7],  },
-      { id:"song_08", title:"这天", artist:"苏打绿", album:"无与伦比的美丽", year:"2007",genre:"友情中的包容&困难时的陪伴", audio:"zhetian.mp3", video:"zhetian.mp4", originalAudio:"这天原音重现.mp3", allowedDoors:[8,10], },
-      { id:"song_09", title:"演员",     artist:"薛之谦", album:"绅士",       year:"2015", audio:"assets/normal/song_09.mp3", video:"assets/normal/mv_09.mp4", allowedDoors:[2]},
-      { id:"song_10", title:"体面",     artist:"于文文", album:"体面",       year:"2017", audio:"assets/normal/song_10.mp3", video:"assets/normal/mv_10.mp4", allowedDoors:[12] },
-      { id:"song_11", title:"消愁",     artist:"毛不易", album:"平凡的一天", year:"2017", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[8] },
+      { id:"song_08", title:"这天", artist:"苏打绿", album:"无与伦比的美丽", year:"2007",genre:"友情中的包容&互相伤害后的原谅", audio:"zhetian.mp3", video:"zhetian.mp4", originalAudio:"这天原音重现.mp3", allowedDoors:[8,10], },
+      { id:"song_09", title:"必杀技",     artist:"古巨基", album:"游戏基",       year:"2003",genre:"爱情如游戏般博弈", audio:"bishaji.mp3", video:"bishaji.mp4", originalAudio:"必杀技原音重现.mp3", allowedDoors:[9]},
+      { id:"song_10", title:"那年花开的时候",     artist:"刘恋", album:"那年花开的时候",       year:"2025",genre:"成都七中建校120周年校庆主题曲", audio:"nanianhuakaideshihou.mp3", video:"nanianhuakaideshihou.mp4", originalAudio:"那年花开的时候原音重现.mp3", allowedDoors:[12] },
+      { id:"song_11", title:"消愁",     artist:"毛不易", album:"平凡的一天", year:"2017", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[4] },
       { id:"song_12", title:"给我一首歌的时间", artist:"周杰伦", album:"我很忙", year:"2007", audio:"assets/normal/song_12.mp3", video:"assets/normal/mv_12.mp4", allowedDoors:[1] },
       { id:"song_13", title:"雨爱",     artist:"杨丞琳", album:"雨爱", year:"2010", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[9] },
-      { id:"song_14", title:"突然好想你",     artist:"五月天", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] },
+      { id:"song_14", title:"那时雨",     artist:"徐良", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] },
       { id:"song_15", title:"晴天",     artist:"周杰伦", album:"叶惠美", year:"2003", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[6] },
        { id:"song_16", title:"雨天",     artist:"孙燕姿", album:"叶惠美", year:"2003", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[3] },
+       { id:"song_17", title:"阴天",     artist:"莫文蔚", album:"叶惠美", year:"2003", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[11] },
+       { id:"song_18", title:"红色高跟鞋",     artist:"蔡健雅", album:"叶惠美", year:"2003", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[8] },
       
     ],
 
@@ -906,16 +996,16 @@
       { id:"west_01", title:"stay",       artist:"The Kid LAROI&Justin Bieber", album:"STAY(Explicit)",                 year:"2021", audio:"STAY.mp3", video:"STAY.mp4", allowedDoors:[3],  excludeWith:["west_07"] },
       { id:"west_02", title:"Bad Guy",             artist:"Billie Eilish", album:"WHEN WE ALL FALL ASLEEP", year:"2019", audio:"assets/western/song_02.mp3", video:"assets/western/mv_02.mp4", allowedDoors:[2] },
       { id:"west_03", title:"Blinding Lights",     artist:"The Weeknd",   album:"After Hours",          year:"2020", audio:"assets/western/song_03.mp3", video:"assets/western/mv_03.mp4", allowedDoors:[3] },
-      { id:"west_04", title:"Love Story",          artist:"Taylor Swift", album:"Fearless",             year:"2008", audio:"assets/western/song_04.mp3", video:"assets/western/mv_04.mp4", allowedDoors:[4], excludeWith:["west_08"] },
+      { id:"west_04", title:"Love Story",          artist:"Taylor Swift1", album:"Fearless",             year:"2008", audio:"assets/western/song_04.mp3", video:"assets/western/mv_04.mp4", allowedDoors:[4], excludeWith:["west_08"] },
       { id:"west_05", title:"Levitating",          artist:"Dua Lipa",     album:"Future Nostalgia",     year:"2020", audio:"assets/western/song_05.mp3", video:"assets/western/mv_05.mp4", allowedDoors:[5] },
       { id:"west_06", title:"Watermelon Sugar",    artist:"Harry Styles", album:"Fine Line",            year:"2019", audio:"assets/western/song_06.mp3", video:"assets/western/mv_06.mp4", allowedDoors:[6] },
-      { id:"west_07", title:"Blank Space",         artist:"Taylor Swift", album:"1989",                 year:"2014", audio:"assets/western/song_07.mp3", video:"assets/western/mv_07.mp4", allowedDoors:[7], excludeWith:["west_01"] },
-      { id:"west_08", title:"Cruel Summer",        artist:"Taylor Swift", album:"Lover",                year:"2019", audio:"assets/western/song_08.mp3", video:"assets/western/mv_08.mp4", allowedDoors:[8], excludeWith:["west_04"] },
+      { id:"west_07", title:"Blank Space",         artist:"Taylor Swift2", album:"1989",                 year:"2014", audio:"assets/western/song_07.mp3", video:"assets/western/mv_07.mp4", allowedDoors:[7], excludeWith:["west_01"] },
+      { id:"west_08", title:"Cruel Summer",        artist:"Taylor Swift3", album:"Lover",                year:"2019", audio:"assets/western/song_08.mp3", video:"assets/western/mv_08.mp4", allowedDoors:[8], excludeWith:["west_04"] },
       { id:"west_09", title:"Flowers",             artist:"Miley Cyrus",  album:"Endless Summer Vacation", year:"2023", audio:"assets/western/song_09.mp3", video:"assets/western/mv_09.mp4", allowedDoors:[9] },
       { id:"west_10", title:"As It Was",           artist:"Harry Styles", album:"Harry's House",        year:"2022", audio:"assets/western/song_10.mp3", video:"assets/western/mv_10.mp4", allowedDoors:[10] },
-      { id:"west_11", title:"Anti-Hero",           artist:"Taylor Swift", album:"Midnights",            year:"2022", audio:"assets/western/song_11.mp3", video:"assets/western/mv_11.mp4", allowedDoors:[11] },
-      { id:"west_12", title:"Espresso",            artist:"Sabrina Carpenter", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[12] },
-       { id:"west_13", title:"Esp",            artist:"Sabrina Carpenter", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[1] }
+      { id:"west_11", title:"Anti-Hero",           artist:"Taylor Swift4", album:"Midnights",            year:"2022", audio:"assets/western/song_11.mp3", video:"assets/western/mv_11.mp4", allowedDoors:[11] },
+      { id:"west_12", title:"Espresso",            artist:"Sabrina Carpenter1", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[12] },
+       { id:"west_13", title:"Esp",            artist:"Sabrina Carpenter2", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[1] }
     ]
   };
 
@@ -925,7 +1015,7 @@
     enabled: true,
     doorMapping: {
       1:  "song_11",
-      2:  "song_10",
+      2:  "song_14",
       3:  "west_01",
       4:  "kpop_04",
       5:  "song_04",
@@ -934,8 +1024,8 @@
       8:  "song_01",
       9:  "song_06",
       10: "song_08",
-      11: "west_11",
-      12: "kpop_12"
+      11: "song_05",
+      12: "song_10"
     }
   };
 
@@ -1012,6 +1102,95 @@
     return tokens;
   }
 
+  // 🆕 计算两个字符串的"字符重叠数"（多重集合交集），用于判断玩家输入
+  // 是否"很接近"正确答案：例如答案"消愁"，输入"消仇" -> 重叠 1 个字。
+  function countCharOverlap(a, b){
+    const freq = {};
+    for(const ch of a){ freq[ch] = (freq[ch]||0) + 1; }
+    let overlap = 0;
+    for(const ch of b){
+      if(freq[ch] > 0){ overlap++; freq[ch]--; }
+    }
+    return overlap;
+  }
+  // 只要命中任意一个可接受答案的"重叠比例 > 75%"，就算"很接近"
+  function isCloseGuess(inputTrimmed, acceptedAnswers){
+    return acceptedAnswers.some(ans => {
+      if(!ans) return false;
+      const overlap = countCharOverlap(inputTrimmed, ans);
+      return overlap > ans.length * 0.75;
+    });
+  }
+
+  // 🆕 星星汇入分数时的清脆音效：Web Audio 现场合成，不依赖外部音频文件。
+  let audioCtx = null;
+  function getAudioCtx(){
+    if(!audioCtx){
+      try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(_){ audioCtx = null; }
+    }
+    return audioCtx;
+  }
+  // 6 颗星星对应的音高：逐级上扬的明亮音阶（大调五声音阶 + 高八度收尾）
+  const STAR_CHIME_NOTES = [1046.5, 1174.7, 1318.5, 1567.98, 1760.0, 2093.0];
+  function playStarChimeNote(index){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const freq = STAR_CHIME_NOTES[Math.min(index, STAR_CHIME_NOTES.length - 1)];
+    const t0 = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gainNode.gain.setValueAtTime(0, t0);
+    gainNode.gain.linearRampToValueAtTime(0.28, t0 + 0.012);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    osc.connect(gainNode).connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.24);
+  }
+  // 收尾的明亮重音：一个明亮大三度和弦，代表本轮点数结算完成
+  function playStarChimeAccent(){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime;
+    [2093.0, 2637.0].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t0);
+      gainNode.gain.setValueAtTime(0, t0);
+      gainNode.gain.linearRampToValueAtTime(0.32, t0 + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.5);
+      osc.connect(gainNode).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.55);
+    });
+  }
+
+  // 🆕 首页"每日挑战"上一局积分：用 localStorage 记住，刷新页面也不丢
+  const DAILY_SCORE_STORAGE_KEY = 'musicguessr_daily_last_score';
+  function getLastDailyScore(){
+    try{
+      const v = localStorage.getItem(DAILY_SCORE_STORAGE_KEY);
+      return v !== null ? Number(v) : null;
+    }catch(_){ return null; }
+  }
+  function setLastDailyScore(score){
+    try{ localStorage.setItem(DAILY_SCORE_STORAGE_KEY, String(score)); }catch(_){}
+  }
+  function refreshDailyBannerScore(){
+    const el = $('daily-last-score');
+    const last = getLastDailyScore();
+    if(last === null){
+      el.classList.add('hidden');
+      el.textContent = '';
+    } else {
+      el.textContent = `⭐ 上一局积分：${last.toLocaleString()}`;
+      el.classList.remove('hidden');
+    }
+  }
+
   const state = {
     mode:null,
     score:0,
@@ -1029,7 +1208,8 @@
     holdStart:0,
     isHolding:false,
     answering:false,
-    helpUsedThisGame:false // 🆘 本局是否已经用掉唯一一次求助机会
+    helpUsedThisGame:false, // 🆘 本局是否已经用掉唯一一次求助机会
+    closeAttempts:0 // 🆕 当前这扇门"很接近但答错"的累计次数，达到 3 次判失败
   };
 
   const HOLD_MAX_MS = 20000;
@@ -1040,23 +1220,42 @@
        allowedDoors 列表里的门号。
      - 同一局游戏中，一首歌只会被选为一次"答案"（door.answer），
        已经被选为答案的歌会从后续门的候选池中排除。
+     - 🆕 同一局游戏中，不会出现两首及以上"歌手完全相同"的歌
+       （只对随机模式生效，每日挑战不受影响；且只在"普通模式"和
+       "欧美专区"启用，K-pop 专区不启用——见 dedupArtists 参数）。
      ===================================================== */
-  function buildGameDoors(pool){
+  function buildGameDoors(pool, dedupArtists){
     const used = new Set(); // 已经被选为"答案"的歌曲 id（一局内不重复）
+    const usedArtists = new Set(); // 🆕 已经出现过的歌手，一局内不重复
     const doors = {};
 
     function hasConflict(song){
       return (song.excludeWith||[]).some(exId => used.has(exId));
     }
+    function artistTaken(song){
+      return !!(dedupArtists && song.artist && usedArtists.has(song.artist));
+    }
 
     for(let n=1;n<=12;n++){
       const count = Math.random() < 0.5 ? 3 : 4;
 
-      let candidates = shuffle(pool.filter(s => (s.allowedDoors||[]).includes(n) && !used.has(s.id) && !hasConflict(s)));
+      // 第一优先：allowedDoors 命中 + 无互斥冲突 + 歌手未重复
+      let candidates = shuffle(pool.filter(s => (s.allowedDoors||[]).includes(n) && !used.has(s.id) && !hasConflict(s) && !artistTaken(s)));
 
+      // 兜底1：数量不够时，放宽"互斥冲突"，但"歌手不重复"依然坚持
       if(candidates.length < count){
-        const relaxed = shuffle(pool.filter(s => (s.allowedDoors||[]).includes(n) && !used.has(s.id)));
+        const relaxed = shuffle(pool.filter(s => (s.allowedDoors||[]).includes(n) && !used.has(s.id) && !artistTaken(s)));
         candidates = relaxed;
+      }
+
+      // 兜底2：万一曲库覆盖不够，"歌手不重复"这条会导致这扇门彻底无歌可选，
+      // 这时才最后放宽这一条，保证游戏能进行下去，并打印警告方便你补充曲库
+      if(candidates.length === 0){
+        const lastResort = shuffle(pool.filter(s => (s.allowedDoors||[]).includes(n) && !used.has(s.id)));
+        if(lastResort.length > 0){
+          console.warn('[猜歌游戏] 门 ' + n + ' 为了保证有歌可用，暂时放宽了"同局不重复歌手"的限制，建议为这个门号补充覆盖更多歌手的歌曲。');
+        }
+        candidates = lastResort;
       }
 
       if(candidates.length === 0){
@@ -1065,7 +1264,10 @@
 
       let picked = candidates.slice(0, Math.min(count, candidates.length));
       const answer = picked.length ? picked[Math.floor(Math.random()*picked.length)] : null;
-      if(answer) used.add(answer.id); // 只有真正被抽为"答案"的歌才标记为已用，避免同一首歌一局内出现两次
+      if(answer){
+        used.add(answer.id); // 只有真正被抽为"答案"的歌才标记为已用，避免同一首歌一局内出现两次
+        if(answer.artist) usedArtists.add(answer.artist);
+      }
       doors[n] = { num:n, songs:picked, answer, solved:false };
     }
     return doors;
@@ -1115,12 +1317,12 @@
       screens[name].classList.add('active');
       window.scrollTo(0,0);
     };
-    if(portal){ setTimeout(doSwitch, 260); }
+    if(portal){ setTimeout(doSwitch, 315); }
     else { doSwitch(); }
   }
 
   function syncScoreDisplays(){
-    ['home','zodiac','door'].forEach(k=>{
+    ['zodiac','door'].forEach(k=>{
       const el = $('score-num-'+k);
       if(el) el.textContent = state.score;
     });
@@ -1138,7 +1340,9 @@
   });
 
   function startMode(modeKey){
-    const doors = buildGameDoors(SONG_DATABASE[modeKey]);
+    // 🆕 只在"普通模式"和"欧美专区"启用同局歌手去重，K-pop 专区不启用
+    const dedupArtists = (modeKey === 'normal' || modeKey === 'western');
+    const doors = buildGameDoors(SONG_DATABASE[modeKey], dedupArtists);
     beginGame(modeKey, doors);
   }
 
@@ -1152,6 +1356,8 @@
   dailyBanner.addEventListener('keydown', (e) => {
     if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); startDailyChallenge(); }
   });
+
+  refreshDailyBannerScore(); // 页面刚打开时就把"上一局积分"显示出来
 
   function beginGame(modeKey, doors){
     state.mode = modeKey;
@@ -1173,9 +1379,16 @@
     grid.innerHTML = '';
     ZODIAC.forEach(z=>{
       const solved = state.solvedAnimals.has(z.key);
+      const doorNum = state.animalDoorMap[z.key];
       const cell = document.createElement('button');
       cell.className = 'zodiac-cell' + (solved ? ' solved' : '');
-      cell.innerHTML = `<div class="flip-inner"><div class="emoji">${z.emoji}</div><div class="name">${z.name}</div></div>`;
+      if(solved){
+        // 🆕 答对之后，格子里显示的是"门号"而不是生肖图案——
+        // 直接告诉玩家还剩哪些门号没被打开过
+        cell.innerHTML = `<div class="flip-inner"><div class="emoji door-number-badge">${String(doorNum).padStart(2,'0')}</div></div>`;
+      } else {
+        cell.innerHTML = `<div class="flip-inner"><div class="emoji">${z.emoji}</div><div class="name">${z.name}</div></div>`;
+      }
       if(!solved){
         cell.addEventListener('click', () => openDoorFromAnimal(z.key));
       } else {
@@ -1218,6 +1431,8 @@
     $('progress-ring').style.setProperty('--p', 0);
     state.answering = false;
     state.holdStart = 0;
+    state.closeAttempts = 0; // 🆕 每扇新门重新计数
+    clearInputWarning();
     closeHelpOverlay(); // 防御性重置：万一上一扇门求助面板没关就切了门
     updateHelpButtonVisibility();
 
@@ -1387,10 +1602,65 @@
     $('hint-text').classList.toggle('show');
   });
 
+  /* ============================================================
+     🆕 答案输入的校验反馈：抖动 + 框内提示文字
+     ------------------------------------------------------------
+     - 空输入：抖动 + 边框变红 + "你还未输入答案哦"
+     - 非空但"很接近"（字符重叠 > 答案长度的 75%）：抖动 + "很接近了，再想想"，
+       连续 3 次仍然是这种情况才判定为本扇门挑战失败。
+     - 玩家只要开始重新输入（input 事件），警告状态立刻清除。
+     ============================================================ */
+  const answerInputEl = $('answer-input');
+  const answerInputMsgEl = $('answer-input-msg');
+
+  function clearInputWarning(){
+    answerInputEl.classList.remove('error-border');
+    answerInputMsgEl.className = 'answer-input-msg';
+    answerInputMsgEl.textContent = '';
+  }
+  answerInputEl.addEventListener('input', clearInputWarning);
+
+  function showInputWarning(message, { isEmpty = false } = {}){
+    answerInputEl.classList.remove('shake');
+    void answerInputEl.offsetWidth; // 重启抖动动画
+    answerInputEl.classList.add('shake');
+    if(isEmpty){
+      answerInputEl.classList.add('error-border');
+    }
+    answerInputMsgEl.textContent = message;
+    answerInputMsgEl.className = 'answer-input-msg show ' + (isEmpty ? 'warn-empty' : 'warn-close');
+  }
+
+  function handleConfirmClick(){
+    if(!state.answering) return;
+    const raw = answerInputEl.value;
+    const trimmed = normalizeAnswer(raw);
+
+    if(!trimmed){
+      showInputWarning('你还未输入答案哦', { isEmpty:true });
+      return;
+    }
+
+    const door = state.doors[state.currentDoorNum];
+    if(door && door.answer){
+      const acceptedAnswers = getAnswerVariants(door.answer.title);
+      const exactCorrect = acceptedAnswers.includes(trimmed);
+      if(!exactCorrect && isCloseGuess(trimmed, acceptedAnswers)){
+        state.closeAttempts++;
+        if(state.closeAttempts < 3){
+          showInputWarning('很接近了，再想想', { isEmpty:false });
+          return; // 还有机会，不提交，让玩家继续尝试
+        }
+        // 第三次仍然是"很接近但错误" —— 走正常提交流程，判定失败
+      }
+    }
+    submitAnswer(raw);
+  }
+
   $('btn-idk').addEventListener('click', () => submitAnswer(null));
-  $('btn-confirm').addEventListener('click', () => submitAnswer($('answer-input').value));
+  $('btn-confirm').addEventListener('click', handleConfirmClick);
   $('answer-input').addEventListener('keydown', (e) => {
-    if(e.key === 'Enter') submitAnswer($('answer-input').value);
+    if(e.key === 'Enter') handleConfirmClick();
   });
 
   function submitAnswer(rawValue){
@@ -1531,7 +1801,7 @@
     });
   }
 
-  // -- 相关信息提醒：翻牌，最多翻 2 张（歌手 / 专辑 / 年代 / 风格） --
+  // -- 相关信息提醒：翻牌，最多翻 3 张（歌手 / 专辑 / 年代 / 风格） --
   function startInfoHelp(){
     helpStepInfo.classList.remove('hidden');
     const door = state.doors[state.currentDoorNum];
@@ -1592,14 +1862,49 @@
   }
 
   const resultModal = $('modal-result');
-  const resultVideo = $('result-video');
   const resultTitle = $('result-title');
   const resultInfoRows = $('result-info-rows');
   const btnCollect = $('btn-collect');
   const btnViewScore = $('btn-viewscore');
+  const resultVideoWrap = $('modal-video-wrap');
+
+  function createResultVideoEl(){
+    resultVideoWrap.innerHTML = '';
+    const v = document.createElement('video');
+    v.id = 'result-video';
+    v.playsInline = true;
+    v.setAttribute('playsinline', '');
+    v.setAttribute('webkit-playsinline', '');
+    v.controls = true;
+    v.autoplay = true;
+    v.muted = true;
+    v.disablePictureInPicture = true;
+    v.setAttribute('disablepictureinpicture', '');
+    v.setAttribute('controlsList', 'nodownload noremoteplayback nofullscreen');
+    v.disableRemotePlayback = true;
+    v.setAttribute('disableremoteplayback', '');
+    v.setAttribute('x-webkit-airplay', 'deny');
+    v.setAttribute('x5-video-player-type', 'h5');
+    v.setAttribute('x5-playsinline', 'true');
+    v.setAttribute('x5-video-player-fullscreen', 'false');
+    v.setAttribute('x5-video-orientation', 'portraint');
+    resultVideoWrap.appendChild(v);
+    return v;
+  }
+  function destroyResultVideoEl(){
+    resultVideoWrap.innerHTML = '';
+  }
+  document.addEventListener('visibilitychange', () => {
+    if(!document.hidden) return;
+    const v = document.getElementById('result-video');
+    if(v){ try{ v.pause(); }catch(_){} }
+  });
+  window.addEventListener('pagehide', () => { destroyResultVideoEl(); });
+  window.addEventListener('beforeunload', () => { destroyResultVideoEl(); });
 
   function openResultModal(isCorrect, door){
     const song = door.answer;
+    const resultVideo = createResultVideoEl();
 
     resultTitle.className = 'modal-info-title ' + (isCorrect ? 'is-correct' : 'is-wrong');
     resultTitle.textContent = isCorrect ? '🎉 恭喜你回答正确！' : '😔 很遗憾，挑战失败';
@@ -1614,7 +1919,6 @@
       resultVideo.src = song.video;
     } else {
       resultInfoRows.innerHTML = `⚠️ 这扇门未配置歌曲，请检查曲库设置。`;
-      resultVideo.removeAttribute('src');
     }
 
     btnCollect.classList.toggle('hidden', !isCorrect);
@@ -1622,24 +1926,15 @@
     resultModal.dataset.correct = isCorrect ? '1':'0';
     resultModal.dataset.door = door.num;
     resultModal.classList.add('show');
-    resultVideo.currentTime = 0;
-    resultVideo.play().catch(()=>{});
+    if(song){
+      resultVideo.currentTime = 0;
+      resultVideo.play().catch(()=>{});
+    }
   }
 
   function closeResultModal(){
     resultModal.classList.remove('show');
-    // 只调用 pause() 在移动端不够可靠：如果上面 play() 返回的 Promise
-    // 还没 resolve 就调用 pause()，等 Promise 稍后 resolve 时浏览器仍可能
-    // 让视频继续播放（经典的 play()/pause() 竞态问题）。
-    // 用 removeAttribute('src') + load() 彻底中止加载/播放请求，才能保证
-    // 关闭后视频一定不会再冒出来。
-    try{
-      resultVideo.pause();
-      resultVideo.removeAttribute('src');
-      resultVideo.load();
-    }catch(err){
-      console.warn('[猜歌游戏] 关闭视频时出错：', err);
-    }
+    destroyResultVideoEl();
   }
 
   btnCollect.addEventListener('click', () => {
@@ -1684,6 +1979,7 @@
           star.remove();
           arrived++;
           bumpScorePill('door');
+          playStarChimeNote(i); // 🆕 每颗星星落定，播放一个逐级上扬的音符
           if(arrived === starCount){
             finishScoreCount(doorNum, gained);
           }
@@ -1705,6 +2001,7 @@
       else {
         state.score = end;
         syncScoreDisplays();
+        playStarChimeAccent(); // 🆕 本轮点数结算完成，收尾一声明亮重音
         markDoorSolvedAndContinue(doorNum);
       }
     }
@@ -1727,6 +2024,9 @@
     $('summary-total').textContent = state.score.toLocaleString();
     const starCount = state.score >= 60000 ? 3 : state.score >= 20000 ? 2 : 1;
     $('summary-stars').textContent = '⭐'.repeat(starCount);
+    if(state.mode === 'daily'){
+      setLastDailyScore(state.score); // 🆕 记录本局每日挑战积分，供首页展示
+    }
     switchScreen('summary', {portal:true});
   }
 
@@ -1740,7 +2040,7 @@
     state.solvedAnimals = new Set();
     state.currentAnimalKey = null;
     state.currentDoorNum = null;
-    syncScoreDisplays();
+    refreshDailyBannerScore(); // 🆕 回到首页时刷新一次每日挑战的上一局积分显示
     switchScreen('home', {portal:true});
   });
 
