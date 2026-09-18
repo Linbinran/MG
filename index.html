@@ -280,6 +280,7 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:4px;
     perspective:600px;
+    position:relative;
   }
   .zodiac-cell .flip-inner{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -303,6 +304,34 @@
     margin-top:-52px;
   }
   .zodiac-cell:not(.solved):active{ transform:scale(0.94); }
+
+  /* 🧊 冰封效果：格子仍显示门号（金色），但表面覆盖一层结冰质感 */
+  .zodiac-cell.frozen{
+    background:linear-gradient(160deg, #274a5e, #16303f);
+    border:1px solid rgba(180,230,255,0.35);
+    overflow:hidden;
+  }
+  .zodiac-cell.frozen::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(255,255,255,0.55) 0%, transparent 30%),
+      radial-gradient(circle at 80% 25%, rgba(255,255,255,0.35) 0%, transparent 25%),
+      radial-gradient(circle at 35% 80%, rgba(255,255,255,0.3) 0%, transparent 30%),
+      linear-gradient(160deg, rgba(180,230,255,0.28), rgba(120,190,230,0.12));
+    backdrop-filter:blur(0.5px);
+    pointer-events:none;
+  }
+  .zodiac-cell.frozen::after{
+    content:"❄";
+    position:absolute; top:6px; right:8px;
+    font-size:14px; color:#d8f4ff;
+    text-shadow:0 0 6px rgba(180,230,255,0.9);
+  }
+  .zodiac-cell.frozen .door-number-badge{
+    color:var(--gold-1);
+    position:relative; z-index:1;
+  }
 
   /* ---------- DOOR SCREEN ---------- */
   .door-screen{ align-items:center; padding:10px 24px 30px 24px; text-align:center; }
@@ -433,9 +462,9 @@
   .answer-input-msg.show{ opacity:1; }
   .answer-input-msg.warn-empty{ color:rgba(200,60,60,0.9); background:rgba(139,20,20,0.08); }
   .answer-input-msg.warn-close{ color:drgba(252, 248, 3, 0.881); background:rgba(0,0,0,0.04); }
-  .answer-btns{ display:flex; gap:10px; }
+  .answer-btns{ display:flex; gap:8px; flex-wrap:wrap; }
   .answer-btns button{
-    flex:1; padding:14px 0; border-radius:999px; font-size:14px; font-weight:700;
+    flex:1; min-width:0; padding:14px 0; border-radius:999px; font-size:13.5px; font-weight:700;
   }
   .btn-idk{ background:rgba(255,127,127,0.15); color:#ff9c9c; border:1px solid rgba(255,127,127,0.35) !important; }
   .btn-confirm{ background:linear-gradient(135deg,#5be6a8,#2fae7c); color:#0d2b1e; }
@@ -446,6 +475,14 @@
     border:1px solid rgba(180,122,255,0.45) !important;
   }
   .btn-help.hidden{ display:none !important; }
+
+  /* 🧊 冰封按钮：冰蓝色调，和其它三个按钮区分开 */
+  .btn-freeze{
+    background:rgba(122,200,255,0.16);
+    color:#b8e6ff;
+    border:1px solid rgba(122,200,255,0.45) !important;
+  }
+  .btn-freeze.hidden{ display:none !important; }
 
   /* ---------- FEEDBACK FLASH ---------- */
   #feedback-flash{
@@ -550,7 +587,7 @@
     text-align:center; margin-bottom:16px;
   }
 
-  /* 三选一入口卡片：原音重现 / 关键字提醒 / 相关信息提醒，等大小横排三个 */
+  /* 三选一入口卡片：原音重现 / 关键字提醒 / 相关信息提醒，等大小横排 */
   .help-choice-grid{
     display:grid; grid-template-columns:repeat(3, 1fr);
     gap:10px;
@@ -566,6 +603,7 @@
     text-align:center;
     padding:8px;
   }
+  .help-choice.hidden{ display:none !important; }
   .help-choice .choice-emoji{ font-size:26px; }
   .help-choice:active{ transform:scale(0.96); }
 
@@ -708,7 +746,7 @@
     .mode-card:not(.locked):hover{ transform:translateY(-3px); box-shadow:0 12px 26px rgba(0,0,0,0.45); }
     .zodiac-cell:not(.solved):hover{ transform:translateY(-3px); border-color:rgba(248,223,160,0.35); }
     .doorbell-btn:hover{ filter:brightness(1.06); }
-    .btn-confirm:hover, .btn-idk:hover, .btn-home:hover, .btn-collect:hover, .btn-viewscore:hover, .btn-help:hover, .help-choice:hover{ filter:brightness(1.08); }
+    .btn-confirm:hover, .btn-idk:hover, .btn-home:hover, .btn-collect:hover, .btn-viewscore:hover, .btn-help:hover, .btn-freeze:hover, .help-choice:hover{ filter:brightness(1.08); }
     .back-btn:hover{ background:rgba(255,255,255,0.12); }
   }
 </style>
@@ -792,7 +830,7 @@
   <!-- ============ DOOR SCREEN ============ -->
   <div class="screen door-screen" id="screen-door">
     <div class="topbar">
-      <button class="back-btn" id="btn-back-zodiac">‹</button>
+      <div class="back-btn hidden"></div>
       <div class="score-pill" id="score-pill-door">
         <span class="star">⭐</span><span class="score-num" id="score-num-door">0</span>
       </div>
@@ -824,6 +862,7 @@
       <div class="answer-btns">
         <button class="btn-idk" id="btn-idk">不知道</button>
         <button class="btn-help" id="btn-help">求助</button>
+        <button class="btn-freeze" id="btn-freeze">冰封</button>
         <button class="btn-confirm" id="btn-confirm">确认答案</button>
       </div>
     </div>
@@ -892,8 +931,8 @@
     <!-- 第一步：三选一 -->
     <div class="help-step" id="help-step-choose">
       <div class="help-title">选择一种求助方式（本局仅可使用一次）</div>
-      <div class="help-choice-grid">
-        <button class="help-choice" type="button" data-help="audio">
+      <div class="help-choice-grid" id="help-choice-grid">
+        <button class="help-choice" type="button" id="help-choice-audio" data-help="audio">
           <span class="choice-emoji">🎧</span>原音重现
         </button>
         <button class="help-choice" type="button" data-help="keyword">
@@ -956,7 +995,7 @@
 
   const SONG_DATABASE = {
     normal: [
-       {id:"song_01", title:"好好",   artist:"五月天", album:"自传",     year:"2016",genre:"青春校园&告别", audio:"haohao.mp3", video:"haohao.mp4", originalAudio:"好好原音重现.mp3", allowedDoors:[8,9,10]},
+      { id:"song_01", title:"好好",   artist:"五月天", album:"自传",     year:"2016",genre:"青春校园&告别", audio:"haohao.mp3", video:"haohao.mp4", originalAudio:"好好原音重现.mp3", allowedDoors:[8,9,10]},
       { id:"song_02", title:"冻结",     artist:"林俊杰", album:"乐行者",     year:"2003",genre:"爱情&回忆", audio:"dongjie.mp3", video:"dongjie.mp4", originalAudio:"冻结原音重现.mp3", allowedDoors:[7] },
       { id:"song_03", title:"阴天快乐",     artist:"陈奕迅", album:"rice&shine", year:"2014",genre:"思念&与遗憾和解", audio:"yintiankuaile.mp3", video:"yintiankuaile.mp4", originalAudio:"阴天快乐原音重现.mp3", allowedDoors:[7] },
       { id:"song_04", title:"魔鬼中的天使",     artist:"田馥甄", album:"My Love",     year:"2011",genre:"爱恨共生&自尊", audio:"moguizhongdetianshi.mp3", video:"moguizhongdetianshi.mp4",originalAudio:"魔鬼中的天使原音重现.mp3", allowedDoors:[5,6,8], },
@@ -968,7 +1007,7 @@
       { id:"song_10", title:"那年花开的时候",     artist:"刘恋", album:"那年花开的时候",       year:"2025",genre:"成都七中建校120周年校庆主题曲", audio:"nanianhuakaideshihou.mp3", video:"nanianhuakaideshihou.mp4", originalAudio:"那年花开的时候原音重现.mp3", allowedDoors:[12] },
       { id:"song_11", title:"洋葱",     artist:"杨宗纬", album:"鸽子", year:"2008", genre:"内向者的情感失语与自我和解", audio:"yangcong.mp3", video:"yangcong.mp4", originalAudio:"洋葱原音重现.mp3", allowedDoors:[4] },
       { id:"song_12", title:"童话", artist:"光良", album:"童话", year:"2005",genre:"现实残酷却依然守住美好纯真的信仰", audio:"tonghua.mp3", video:"tonghua.mp4",originalAudio:"童话原音重现.mp3", allowedDoors:[1] },
-      { id:"song_13", title:"雨爱",     artist:"杨丞琳", album:"雨爱", year:"2010", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[9] },
+      { id:"song_13", title:"雨爱",     artist:"杨丞琳", album:"雨爱", year:"2010",genre:"雨爱", audio:"yuai.mp3", video:"yuai.mp4",originalAudio:"雨爱原音重现.mp3", allowedDoors:[7] },
       { id:"song_14", title:"那时雨",     artist:"徐良", album:"后青春期的诗", year:"2008", audio:"assets/normal/song_11.mp3", video:"assets/normal/mv_11.mp4", allowedDoors:[10] },
       { id:"song_15", title:"晴天",     artist:"周杰伦", album:"叶惠美", year:"2003",genre:"校园青春暗恋&爱而不得", audio:"qingtian.mp3", video:"qingtian.mp4",originalAudio:"晴天原音重现.mp3", allowedDoors:[3,6] },
       { id:"song_16", title:"雨天",     artist:"孙燕姿", album:"叶惠美", year:"2003", audio:"yutian.mp3", video:"yutian.mp4", allowedDoors:[3,9] },
@@ -982,7 +1021,12 @@
       { id:"song_24", title:"天使",     artist:"五月天", album:"为爱而生", year:"2006",genre:"爱与被守护的幸福", audio:"tianshi.mp3", video:"tianshi.mp4", originalAudio:"天使原音重现.mp3", allowedDoors:[6,8] },
       { id:"song_25", title:"安静了",     artist:"S.H.E", album:"我的电台FMS.H.E", year:"2008",genre:"爱情耗尽，争吵落幕，归于沉默", audio:"anjingle.mp3", video:"anjingle.mp4", originalAudio:"安静了原音重现.mp3", allowedDoors:[11] },
       { id:"song_26", title:"阳光总在风雨后",     artist:"许美静", album:"都是夜归人", year:"1997",genre:"中国女排队歌，困境破局后总有希望", audio:"yangguangzongzaifengyuhou.mp3", video:"yangguangzongzaifengyuhou.mp4", originalAudio:"阳光总在风雨后原音重现.mp3", allowedDoors:[2] },
-       { id:"song_27", title:"河滨公园",     artist:"S.H.E", album:"super star", year:"2003",genre:"分手后回到初恋时的故地，原型为台北市大佳公园", audio:"hebingongyuan.mp3", video:"hebingongyuan.mp4", originalAudio:"河滨公园原音重现.mp3", allowedDoors:[10] },
+      { id:"song_27", title:"河滨公园",     artist:"S.H.E", album:"super star", year:"2003",genre:"分手后回到初恋时的故地，原型为台北市大佳公园", audio:"hebingongyuan.mp3", video:"hebingongyuan.mp4", originalAudio:"河滨公园原音重现.mp3", allowedDoors:[10] },
+      { id:"song_28", title:"反方向的钟",     artist:"周杰伦", album:"Jay", year:"2000",genre:"分手后悔恨希望时间倒流", audio:"fanfangxiangdezhong.mp3", video:"fanfangxiangdezhong.mp4", originalAudio:"反方向的钟原音重现.mp3", allowedDoors:[7] },
+      { id:"song_29", title:"绿光",     artist:"孙燕姿", album:"风筝", year:"2001",genre:"象征奇迹和希望，期盼遇见奇妙的缘分", audio:"lvguang.mp3", video:"lvguang.mp4", originalAudio:"绿光原音重现.mp3", allowedDoors:[2,3] },
+      { id:"song_30", title:"开心的马骝",     artist:"刘德华", album:"答案就是你", year:"1993",genre:"比喻开放洒脱的香港年轻人&都市男女爱恋", audio:"kaixindemaliu.mp3", video:"kaixindemaliu.mp4", originalAudio:"开心的马骝原音重现.mp3", allowedDoors:[9] },
+      { id:"song_31", title:"爱笑的眼睛",     artist:"林俊杰", album:"她说", year:"2010（原唱徐若瑄，发行于2005）", genre:"爱笑的眼睛", audio:"aixiaodeyanjing.mp3", video:"aixiaodeyanjing.mp4", originalAudio:"爱笑的眼睛原音重现.mp3", allowedDoors:[5] },
+      { id:"song_32", title:"笑忘歌",     artist:"五月天", album:"后青春期的诗", year:"2008",genre:"青春告别&留下美好回忆”这一生志愿只要平凡快乐，谁说这样不伟大呢“", audio:"xiaowangge.mp3", video:"xiaowangge.mp4", originalAudio:"笑忘歌原音重现.mp3", allowedDoors:[9] },
     ],
     kpop: [
       { id:"kpop_01", title:"Dynamite",             artist:"BTS",       album:"BE",              year:"2020", audio:"assets/kpop/song_01.mp3", video:"assets/kpop/mv_01.mp4", allowedDoors:[1],  excludeWith:["kpop_07"] },
@@ -1012,7 +1056,7 @@
       { id:"west_10", title:"As It Was",           artist:"Harry Styles", album:"Harry's House",        year:"2022", audio:"assets/western/song_10.mp3", video:"assets/western/mv_10.mp4", allowedDoors:[10] },
       { id:"west_11", title:"Anti-Hero",           artist:"Taylor Swift4", album:"Midnights",            year:"2022", audio:"assets/western/song_11.mp3", video:"assets/western/mv_11.mp4", allowedDoors:[11] },
       { id:"west_12", title:"Espresso",            artist:"Sabrina Carpenter1", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[12] },
-       { id:"west_13", title:"Esp",            artist:"Sabrina Carpenter2", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[1] }
+      { id:"west_13", title:"Esp",            artist:"Sabrina Carpenter2", album:"Short n' Sweet",  year:"2024", audio:"assets/western/song_12.mp3", video:"assets/western/mv_12.mp4", allowedDoors:[1] }
     ]
   };
 
@@ -1027,9 +1071,9 @@
       4:  "song_11",
       5:  "song_04",
       6:  "song_03",
-      7:  "song_07",
+      7:  "song_28",
       8:  "song_23",
-      9:  "song_06",
+      9:  "song_30",
       10: "song_08",
       11: "song_25",
       12: "song_10"
@@ -1204,6 +1248,7 @@
     doors:{},
     animalDoorMap:{},
     solvedAnimals:new Set(),
+    frozenAnimals:new Set(), // 🧊 已冰封（暂时跳过、可回来再玩）的生肖门
     currentAnimalKey:null,
     currentDoorNum:null,
     audio:null,
@@ -1216,6 +1261,7 @@
     isHolding:false,
     answering:false,
     helpUsedThisGame:false, // 🆘 本局是否已经用掉唯一一次求助机会
+    freezeUsedThisGame:false, // 🧊 本局是否已经用掉唯一一次冰封机会
     closeAttempts:0 // 🆕 当前这扇门"很接近但答错"的累计次数，达到 3 次判失败
   };
 
@@ -1372,9 +1418,12 @@
     state.doors = doors;
     state.animalDoorMap = buildAnimalDoorMap();
     state.solvedAnimals = new Set();
+    state.frozenAnimals = new Set(); // 🧊 新的一局，冰封状态清空
     state.helpUsedThisGame = false; // 🆘 新的一局，求助机会重新可用
+    state.freezeUsedThisGame = false; // 🧊 新的一局，冰封机会重新可用
     syncScoreDisplays();
     updateHelpButtonVisibility();
+    updateFreezeButtonVisibility();
 
     $('zodiac-mode-title').textContent = MODE_TITLES[modeKey] || modeKey;
     renderZodiacGrid();
@@ -1386,17 +1435,19 @@
     grid.innerHTML = '';
     ZODIAC.forEach(z=>{
       const solved = state.solvedAnimals.has(z.key);
+      const frozen = state.frozenAnimals.has(z.key); // 🧊
       const doorNum = state.animalDoorMap[z.key];
       const cell = document.createElement('button');
-      cell.className = 'zodiac-cell' + (solved ? ' solved' : '');
-      if(solved){
-        // 🆕 答对之后，格子里显示的是"门号"而不是生肖图案——
+      cell.className = 'zodiac-cell' + (solved ? ' solved' : '') + (frozen ? ' frozen' : '');
+      if(solved || frozen){
+        // 🆕 答对之后 / 🧊 冰封之后，格子里显示的是"门号"而不是生肖图案——
         // 直接告诉玩家还剩哪些门号没被打开过
         cell.innerHTML = `<div class="flip-inner"><div class="emoji door-number-badge">${String(doorNum).padStart(2,'0')}</div></div>`;
       } else {
         cell.innerHTML = `<div class="flip-inner"><div class="emoji">${z.emoji}</div><div class="name">${z.name}</div></div>`;
       }
       if(!solved){
+        // 冰封的门依然可以点击重新进入
         cell.addEventListener('click', () => openDoorFromAnimal(z.key));
       } else {
         cell.disabled = true;
@@ -1420,12 +1471,6 @@
     switchScreen('door', {portal:true});
   }
 
-  $('btn-back-zodiac').addEventListener('click', () => {
-    cleanupAudio();
-    closeHelpOverlay();
-    switchScreen('zodiac');
-  });
-
   function resetDoorUI(){
     $('answer-panel').classList.remove('show');
     $('answer-input').value = '';
@@ -1442,6 +1487,7 @@
     clearInputWarning();
     closeHelpOverlay(); // 防御性重置：万一上一扇门求助面板没关就切了门
     updateHelpButtonVisibility();
+    updateFreezeButtonVisibility();
 
     // 提前预加载这扇门后面的歌曲：进入门铃界面时就开始缓冲，
     // 减少长按门铃后到真正出声之间的延迟（移动端首次加载尤其明显）。
@@ -1602,6 +1648,7 @@
     state.answering = true;
     $('answer-panel').classList.add('show');
     updateHelpButtonVisibility();
+    updateFreezeButtonVisibility();
     setTimeout(()=> $('answer-input').focus(), 200);
   }
 
@@ -1689,6 +1736,39 @@
   }
 
   /* ============================================================
+     🧊 冰封功能
+     ------------------------------------------------------------
+     - 每局仅可使用一次：用掉之后，之后打开的每一扇门都不会再显示
+       "冰封"按钮（updateFreezeButtonVisibility）。
+     - 点击后：退出到生肖选择界面，该门对应的生肖格子改为显示门号
+       （和答对类似），但覆盖一层结冰视觉效果，表示"暂时冰封、
+       稍后仍可再次进入"，和"solved"（已答对、彻底完成）区分开。
+     - 冰封的门再次点开后，一切照常（可以听歌、作答、求助等），
+       答对后会正常从 frozenAnimals 移除并加入 solvedAnimals。
+     ============================================================ */
+  const freezeBtn = $('btn-freeze');
+
+  function updateFreezeButtonVisibility(){
+    freezeBtn.classList.toggle('hidden', state.freezeUsedThisGame);
+  }
+
+  freezeBtn.addEventListener('click', () => {
+    if(state.freezeUsedThisGame) return;
+    if(!state.currentAnimalKey) return;
+
+    cleanupAudio();
+    closeHelpOverlay();
+    state.answering = false;
+
+    state.freezeUsedThisGame = true;
+    state.frozenAnimals.add(state.currentAnimalKey);
+    updateFreezeButtonVisibility();
+
+    renderZodiacGrid();
+    switchScreen('zodiac', {portal:true});
+  });
+
+  /* ============================================================
      🆘 求助功能
      ------------------------------------------------------------
      - btn-help：本局用过一次后会被隐藏（updateHelpButtonVisibility）
@@ -1696,9 +1776,16 @@
        和后面翻牌/播放的具体交互结果无关（哪怕求助后依然答错也不退还）。
      - 三种求助方式共用同一个 help-overlay 弹窗容器，只是显示不同的
        .help-step 子面板。
+     - 🆕 K-pop / 欧美专区不提供"原音重现"选项，只有"关键字提醒"和
+       "相关信息提醒"两种方式可选。
+     - 🆕 如果玩家点开求助后又反悔了：在还没选择任何一种具体方式之前，
+       点击弹窗外的空白处即可直接退出，不算用掉本局唯一一次求助机会，
+       求助按钮依然保留可用。一旦选定了某一种具体方式，则视为已经
+       用掉这次求助机会（和之前一样）。
      ============================================================ */
   const helpOverlay = $('help-overlay');
   const helpBtn = $('btn-help');
+  const helpChoiceAudio = $('help-choice-audio');
   const helpStepChoose = $('help-step-choose');
   const helpStepAudio = $('help-step-audio');
   const helpStepKeyword = $('help-step-keyword');
@@ -1716,9 +1803,19 @@
     // 每次打开都重置回"三选一"这一步，几个具体求助面板先隐藏、清空
     [helpStepAudio, helpStepKeyword, helpStepInfo].forEach(s => s.classList.add('hidden'));
     helpStepChoose.classList.remove('hidden');
+
+    // 🆕 K-pop / 欧美专区没有"原音重现"选项，只保留另外两种方式
+    const showAudioChoice = (state.mode === 'normal' || state.mode === 'daily');
+    helpChoiceAudio.classList.toggle('hidden', !showAudioChoice);
+    $('help-choice-grid').style.gridTemplateColumns = showAudioChoice ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)';
+
     helpOverlay.classList.add('show');
   }
 
+  // 关闭求助弹窗。是否计入"本局唯一一次求助机会"完全取决于
+  // helpUsedThisGame 是否已经在"点击三选一中的某个具体方式"时被置为 true——
+  // 如果玩家还没选定任何方式就点击空白处关闭，helpUsedThisGame 仍是 false，
+  // 求助按钮会照常保留可用。
   function closeHelpOverlay(){
     helpOverlay.classList.remove('show');
     // 原音重现的音频播放要跟着一起停掉、销毁，避免残留播放
@@ -1732,6 +1829,13 @@
   helpBtn.addEventListener('click', () => {
     if(state.helpUsedThisGame) return; // 双重保险：本局已经用过就不响应
     openHelpOverlay();
+  });
+
+  // 🆕 点击求助弹窗外的空白背景处：直接退出求助（若尚未选择具体方式，则不算使用）
+  helpOverlay.addEventListener('click', (e) => {
+    if(e.target === helpOverlay){
+      closeHelpOverlay();
+    }
   });
 
   document.querySelectorAll('.help-choice').forEach(btn=>{
@@ -1852,7 +1956,7 @@
   }
 
   ['help-exit-audio','help-exit-keyword','help-exit-info'].forEach(id=>{
-    $(id).addEventListener('click', closeHelpOverlay);
+    $(id).addEventListener('click', () => closeHelpOverlay());
   });
 
   function showFeedback(isCorrect, door){
@@ -2018,6 +2122,7 @@
   function markDoorSolvedAndContinue(doorNum){
     state.doors[doorNum].solved = true;
     state.solvedAnimals.add(state.currentAnimalKey);
+    state.frozenAnimals.delete(state.currentAnimalKey); // 🧊 答对了，取消它的冰封状态
 
     if(state.solvedAnimals.size >= 12){
       goToSummary();
@@ -2045,6 +2150,7 @@
     state.doors = {};
     state.animalDoorMap = {};
     state.solvedAnimals = new Set();
+    state.frozenAnimals = new Set();
     state.currentAnimalKey = null;
     state.currentDoorNum = null;
     refreshDailyBannerScore(); // 🆕 回到首页时刷新一次每日挑战的上一局积分显示
